@@ -6,6 +6,7 @@ const figlet = require('figlet');
 const files = require('./lib/files.js');
 const inquirer = require('./lib/inquirer');
 const github = require('./lib/github');
+const repo = require('./lib/repo');
 
 clear();
 console.log(
