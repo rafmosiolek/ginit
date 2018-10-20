@@ -17,13 +17,52 @@ if (files.directoryExists('.git')) {
     process.exit();
 }
 
-const executeTheInquirer = async () => {
+const getGitHubToken = async () => {
+    // If token already exists, fetch it from a configstore
     let token = github.getStoredGitHubToken();
-    if (!token) {
-        await github.setGithubCredentials();
-        token = await github.registerNewToken();
+    if (token) {
+        return token;
     }
-    console.log(token);
+
+    // No token found, use credentials to access user's GitHub acc
+    await github.setGithubCredentials();
+
+    // Register new token
+    token = await github.registerNewToken();
+    return token;
 }
 
-executeTheInquirer();
+const runApp = async () => {
+    try {
+        // Retrieve & set authentication token
+        const token = await getGitHubToken();
+        github.setupGitHubOAuthAuthentication(token);
+
+        // Create a remote repo
+        const url = await repo.createRemoteRepo();
+
+        // Create .gitignore file
+        await repo.createGitignore();
+
+        // Setup local repo and push to remote
+        const done = await repo.initializeNewRepo(url);
+        if (done) {
+            console.log(chalk.green('All done!'));
+        }
+    } catch(err) {
+        if (err) {
+            switch (err.code) {
+                case 401:
+                    console.log(chalk.red("Couldn't log you in. Please provide correct credentials/token."));
+                    break;
+                case 422:
+                    console.log(chalk.red("Remote repository with the same name already exists"));
+                    break;
+                default:
+                    console.log(chalk.red(err));
+            }
+        }
+    }
+}
+
+runApp();
